@@ -40,7 +40,7 @@ const AlwaysAllowSchema = z.array(z.string()).default([])
 export const StdioConfigSchema = z.object({
 	command: z.string(),
 	args: z.array(z.string()).optional(),
-	env: z.record(z.string()).optional(),
+	env: z.record(z.string().nullable()).optional(),
 	alwaysAllow: AlwaysAllowSchema.optional(),
 	disabled: z.boolean().optional(),
 	timeout: z.number().min(1).max(3600).optional().default(60),
@@ -172,8 +172,8 @@ export class McpHub {
 					if (key.toUpperCase() === 'PATH' && process.env.PATH) {
 						// For PATH, append the user config to the existing path
 						mergedEnv[key] = `${process.env.PATH}${path.delimiter}${value}`;
-					} else {
-						// For other env vars, use the config value
+					} else if (value !== undefined) {
+						// For other env vars, use the config value if it's not undefined
 						mergedEnv[key] = value;
 					}
 				});
