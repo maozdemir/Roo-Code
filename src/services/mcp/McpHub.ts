@@ -163,16 +163,34 @@ export class McpHub {
 				},
 			)
 
+			const mergedEnv = { ...process.env }; // Start with all parent env vars
+
+			// Merge in config env vars, with special handling for PATH
+			if (config.env) {
+				Object.entries(config.env).forEach(([key, value]) => {
+					if (key.toUpperCase() === 'PATH' && process.env.PATH) {
+						// For PATH, append the user config to the existing path
+						mergedEnv[key] = `${process.env.PATH}${path.delimiter}${value}`;
+					} else {
+						// For other env vars, use the config value
+						mergedEnv[key] = value;
+					}
+				});
+			}
+			const filteredEnv: Record<string, string> = Object.entries(config.env || {}).reduce((acc, [key, value]) => {
+			    if (value !== undefined) {
+			        acc[key] = value;
+			    }
+			    return acc;
+			}, {} as Record<string, string>);
+			
 			const transport = new StdioClientTransport({
-				command: config.command,
-				args: config.args,
-				env: {
-					...config.env,
-					...(process.env.PATH ? { PATH: process.env.PATH } : {}),
-					// ...(process.env.NODE_PATH ? { NODE_PATH: process.env.NODE_PATH } : {}),
-				},
-				stderr: "pipe", // necessary for stderr to be available
-			})
+			    command: config.command,
+			    args: config.args,
+			    env: filteredEnv,
+			    stderr: "pipe",
+			    shell: true,
+			});
 
 			transport.onerror = async (error) => {
 				console.error(`Transport error for "${name}":`, error)
@@ -632,22 +650,22 @@ export class McpHub {
 	}
 
 	async readResource(serverName: string, uri: string): Promise<McpResourceResponse> {
-		const connection = this.connections.find((conn) => conn.server.name === serverName)
-		if (!connection) {
-			throw new Error(`No connection found for server: ${serverName}`)
-		}
-		if (connection.server.disabled) {
-			throw new Error(`Server "${serverName}" is disabled`)
-		}
-		return await connection.client.request(
-			{
-				method: "resources/read",
-				params: {
-					uri,
-				},
-			},
-			ReadResourceResultSchema,
-		)
+	    const connection = this.connections.find((conn) => conn.server.name === serverName)
+	    if (!connection) {
+	        throw new Error(`No connection found for server: ${serverName}`)
+	    }
+	    if (connection.server.disabled) {
+	        throw new Error(`Server "${serverName}" is disabled`)
+	    }
+	    return await connection.client.request(
+	        {
+	            method: "resources/read",
+	            params: {
+	                uri,
+	            },
+	        },
+	        ReadResourceResultSchema
+	    );
 	}
 
 	async callTool(
