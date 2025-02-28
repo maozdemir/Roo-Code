@@ -33,3 +33,18 @@ jobs:
           cd webview-ui
           npm install
           cd ..
+      - name: Build VSIX
+        run: npm run vsix
+      - name: Create Tag
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+      - name: Create Release
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          gh release create "v$VERSION" --title "Release v$VERSION" --notes "Automated release of version $VERSION"
+      - name: Upload VSIX to Release
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          gh release upload "v$VERSION" "bin/roo-code-$VERSION.vsix"
