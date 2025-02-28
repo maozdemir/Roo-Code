@@ -644,21 +644,22 @@ export class McpHub {
 	}
 
 	async readResource(serverName: string, uri: string): Promise<McpResourceResponse> {
-		const connection = this.connections.find((conn) => conn.server.name === serverName)
-		if (!connection) {
-			throw new Error(`No connection found for server: ${serverName}`)
-		}
-		if (connection.server.disabled) {
-			throw new Error(`Server "${serverName}" is disabled`)
-		}
-		return await connection.client.request(
-			{
-				method: "resources/read",
-				params: {
-					uri,
-				},
-			ReadResourceResultSchema,
-		)
+	    const connection = this.connections.find((conn) => conn.server.name === serverName)
+	    if (!connection) {
+	        throw new Error(`No connection found for server: ${serverName}`)
+	    }
+	    if (connection.server.disabled) {
+	        throw new Error(`Server "${serverName}" is disabled`)
+	    }
+	    return await connection.client.request(
+	        {
+	            method: "resources/read",
+	            params: {
+	                uri,
+	            },
+	        },
+	        ReadResourceResultSchema
+	    );
 	}
 
 	async callTool(
