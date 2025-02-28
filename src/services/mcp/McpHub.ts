@@ -177,14 +177,20 @@ export class McpHub {
 					}
 				});
 			}
-
+			const filteredEnv: Record<string, string> = Object.entries(config.env || {}).reduce((acc, [key, value]) => {
+			    if (value !== undefined) {
+			        acc[key] = value;
+			    }
+			    return acc;
+			}, {} as Record<string, string>);
+			
 			const transport = new StdioClientTransport({
-				command: config.command,
-				args: config.args,
-				env: mergedEnv,
-				stderr: "pipe", // necessary for stderr to be available
-				shell: true,    // Use shell to execute the command, which helps with PATH resolution
-			})
+			    command: config.command,
+			    args: config.args,
+			    env: filteredEnv,
+			    stderr: "pipe",
+			    shell: true,
+			});
 
 			transport.onerror = async (error) => {
 				console.error(`Transport error for "${name}":`, error)
