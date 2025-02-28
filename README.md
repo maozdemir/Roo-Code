@@ -165,3 +165,21 @@ We love community contributions! Here’s how to get involved:
 ---
 
 **Enjoy Roo Code!** Whether you keep it on a short leash or let it roam autonomously, we can’t wait to see what you build. If you have questions or feature ideas, drop by our [Reddit community](https://www.reddit.com/r/RooCode/) or [Discord](https://roocode.com/discord). Happy coding!
+
+## Building the Extension
+
+To build the extension, follow these steps:
+
+1. **Install dependencies**:
+    ```bash
+    npm install
+    ```
+2. **Build the extension**:
+    ```bash
+    npm run vsix
+    ```
+    - The `.vsix` file will appear in the `bin/` directory.
+3. **Install the `.vsix` manually**:
+    ```bash
+    code --install-extension bin/roo-code-4.0.0.vsix
+    ```
