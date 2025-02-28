@@ -163,15 +163,27 @@ export class McpHub {
 				},
 			)
 
+			const mergedEnv = { ...process.env }; // Start with all parent env vars
+
+			// Merge in config env vars, with special handling for PATH
+			if (config.env) {
+				Object.entries(config.env).forEach(([key, value]) => {
+					if (key.toUpperCase() === 'PATH' && process.env.PATH) {
+						// For PATH, append the user config to the existing path
+						mergedEnv[key] = `${process.env.PATH}${path.delimiter}${value}`;
+					} else {
+						// For other env vars, use the config value
+						mergedEnv[key] = value;
+					}
+				});
+			}
+
 			const transport = new StdioClientTransport({
 				command: config.command,
 				args: config.args,
-				env: {
-					...config.env,
-					...(process.env.PATH ? { PATH: process.env.PATH } : {}),
-					// ...(process.env.NODE_PATH ? { NODE_PATH: process.env.NODE_PATH } : {}),
-				},
+				env: mergedEnv,
 				stderr: "pipe", // necessary for stderr to be available
+				shell: true,    // Use shell to execute the command, which helps with PATH resolution
 			})
 
 			transport.onerror = async (error) => {
@@ -645,7 +657,6 @@ export class McpHub {
 				params: {
 					uri,
 				},
-			},
 			ReadResourceResultSchema,
 		)
 	}

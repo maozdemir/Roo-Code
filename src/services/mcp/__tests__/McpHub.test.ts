@@ -477,4 +477,69 @@ describe("McpHub", () => {
 			})
 		})
 	})
+
+	describe("environment variables and shell context", () => {
+		it("should pass all environment variables to the child process", async () => {
+			const mockConnection: McpConnection = {
+				server: {
+					name: "test-server",
+					config: JSON.stringify({ command: "test" }),
+					status: "connected",
+				},
+				client: {
+					request: jest.fn().mockResolvedValue({ content: [] }),
+				} as any,
+				transport: {
+					start: jest.fn(),
+					close: jest.fn(),
+					stderr: { on: jest.fn() },
+				} as any,
+			}
+
+			mcpHub.connections = [mockConnection]
+
+			const envVars = { ...process.env, CUSTOM_VAR: "custom_value" }
+			process.env = envVars
+
+			await mcpHub.callTool("test-server", "test-tool")
+
+			expect(mockConnection.client.request).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.anything(),
+				expect.objectContaining({
+					env: expect.objectContaining(envVars),
+				}),
+			)
+		})
+
+		it("should execute commands in a shell context", async () => {
+			const mockConnection: McpConnection = {
+				server: {
+					name: "test-server",
+					config: JSON.stringify({ command: "test" }),
+					status: "connected",
+				},
+				client: {
+					request: jest.fn().mockResolvedValue({ content: [] }),
+				} as any,
+				transport: {
+					start: jest.fn(),
+					close: jest.fn(),
+					stderr: { on: jest.fn() },
+				} as any,
+			}
+
+			mcpHub.connections = [mockConnection]
+
+			await mcpHub.callTool("test-server", "test-tool")
+
+			expect(mockConnection.client.request).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.anything(),
+				expect.objectContaining({
+					shell: true,
+				}),
+			)
+		})
+	})
 })
