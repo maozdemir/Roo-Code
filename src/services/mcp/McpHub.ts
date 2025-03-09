@@ -40,7 +40,7 @@ const AlwaysAllowSchema = z.array(z.string()).default([])
 export const StdioConfigSchema = z.object({
 	command: z.string(),
 	args: z.array(z.string()).optional(),
-	env: z.record(z.string()).optional(),
+	env: z.record(z.string().nullable()).optional(),
 	alwaysAllow: AlwaysAllowSchema.optional(),
 	disabled: z.boolean().optional(),
 	timeout: z.number().min(1).max(3600).optional().default(60),
@@ -78,7 +78,7 @@ export class McpHub {
 		const provider = this.providerRef.deref()
 		if (!provider) {
 			throw new Error("Provider not available")
-		}
+			}
 		const mcpServersPath = await provider.ensureMcpServersDirectoryExists()
 		return mcpServersPath
 	}
@@ -163,15 +163,28 @@ export class McpHub {
 				},
 			)
 
+			// Create the environment object, merging PATH properly if present
+			const mergedEnv = { ...process.env }; // Start with all parent env vars
+
+			// Merge in config env vars, with special handling for PATH
+			if (config.env) {
+				Object.entries(config.env).forEach(([key, value]) => {
+					if (key.toUpperCase() === 'PATH' && process.env.PATH) {
+						// For PATH, append the user config to the existing path
+						mergedEnv[key] = `${process.env.PATH}${path.delimiter}${value}`;
+					} else if (value !== undefined) {
+						// For other env vars, use the config value if it's not undefined
+						mergedEnv[key] = value;
+					}
+				});
+			}
+
 			const transport = new StdioClientTransport({
 				command: config.command,
 				args: config.args,
-				env: {
-					...config.env,
-					...(process.env.PATH ? { PATH: process.env.PATH } : {}),
-					// ...(process.env.NODE_PATH ? { NODE_PATH: process.env.NODE_PATH } : {}),
-				},
+				env: mergedEnv,
 				stderr: "pipe", // necessary for stderr to be available
+				shell: true,    // Use shell to execute the command, which helps with PATH resolution
 			})
 
 			transport.onerror = async (error) => {
@@ -597,7 +610,7 @@ export class McpHub {
 				throw new Error("Invalid config structure")
 			}
 
-			if (!config.mcpServers || typeof config.mcpServers !== "object") {
+			if (!config.mcpServers || typeof config !== "object") {
 				config.mcpServers = {}
 			}
 

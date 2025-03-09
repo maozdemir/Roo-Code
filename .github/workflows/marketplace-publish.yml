@@ -33,19 +33,18 @@ jobs:
           cd webview-ui
           npm install
           cd ..
-      - name: Package and Publish Extension
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+      - name: Build VSIX
+        run: npm run vsix
+      - name: Create Tag
         run: |
-          current_package_version=$(node -p "require('./package.json').version")
-
-          npm run vsix
-          package=$(unzip -l bin/roo-cline-${current_package_version}.vsix)
-          echo "$package"
-          echo "$package" | grep -q "dist/extension.js" || exit 1
-          echo "$package" | grep -q "extension/webview-ui/build/assets/index.js" || exit 1
-          echo "$package" | grep -q "extension/node_modules/@vscode/codicons/dist/codicon.ttf" || exit 1
-
-          npm run publish:marketplace
-          echo "Successfully published version $current_package_version to VS Code Marketplace"
+          VERSION=$(jq -r '.version' package.json)
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+      - name: Create Release
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          gh release create "v$VERSION" --title "Release v$VERSION" --notes "Automated release of version $VERSION"
+      - name: Upload VSIX to Release
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          gh release upload "v$VERSION" "bin/roo-code-$VERSION.vsix"
